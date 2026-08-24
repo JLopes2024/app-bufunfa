@@ -188,7 +188,7 @@ export default function App() {
     setLoanAmount(''); setMasterPassword('');
   };
 
-  if (view === 'relatorio') {
+if (view === 'relatorio') {
     return (
       <div className="app-container">
         <header className="header">
@@ -202,16 +202,24 @@ export default function App() {
         <main>
           {ranking.map((family, index) => (
             <section key={family.id} className="panel" style={{ padding: '32px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px', borderBottom:'1px solid var(--border-light)', paddingBottom:'24px' }}>
-                <div>
-                  <h2 style={{ color: index===0?'var(--warning)':'var(--text-main)', fontWeight: '900', fontSize:'1.8rem' }}>{index + 1}º LUGAR: {family.name}</h2>
+              
+              {/* --- INÍCIO DA CORREÇÃO DE RESPONSIVIDADE (FLEX-WRAP E CLAMP) --- */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px', alignItems: 'center', marginBottom: '24px', borderBottom:'1px solid var(--border-light)', paddingBottom:'24px' }}>
+                <div style={{ flex: '1 1 min-content' }}>
+                  <h2 style={{ color: index===0?'var(--warning)':'var(--text-main)', fontWeight: '900', fontSize: 'clamp(1.2rem, 3vw, 1.8rem)' }}>
+                    {index + 1}º LUGAR: {family.name}
+                  </h2>
                   <p className="text-muted" style={{marginTop:'8px'}}>Felicidade: {family.happiness} • Energia: {family.energy}</p>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <p className="text-muted" style={{fontWeight:'700'}}>PATRIMÔNIO FINAL</p>
-                  <div className={`display-amount ${getWealth(family.balance, family.investments) < 0 ? 'text-danger' : 'text-success'}`} style={{marginTop:'0'}}>{formatMoney(getWealth(family.balance, family.investments))}</div>
+                <div style={{ textAlign: 'right', flex: '1 1 auto' }}>
+                  <p className="text-muted" style={{fontWeight:'700', letterSpacing: '1px'}}>PATRIMÔNIO FINAL</p>
+                  <div className={`display-amount ${getWealth(family.balance, family.investments) < 0 ? 'text-danger' : 'text-success'}`} style={{marginTop:'0'}}>
+                    {formatMoney(getWealth(family.balance, family.investments))}
+                  </div>
                 </div>
               </div>
+              {/* --- FIM DA CORREÇÃO --- */}
+
               {family.history?.length === 0 ? <p className="text-muted">Sem registros na blockchain.</p> : (
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.95rem' }}>
