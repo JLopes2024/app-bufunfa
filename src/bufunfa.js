@@ -41,7 +41,7 @@ export const getInitialFamilies = () => [
   createFamily("3", "Souza Lima", "Independência financeira", 2000),
   createFamily("4", "Mendes Rocha", "Formação dos jovens", 150),
   createFamily("5", "Barbosa Santos", "Adquirir maquinário", 700),
-  createFamily("6", "Camargo Faria", "Reestruturar finanças", 200),
+  createFamily("6", "Camargo Faria", "Reestruturar finanças", -200),
   createFamily("7", "Xavier Duarte", "Limpar o nome e reformar", -200),
   createFamily("8", "Martins Alencar", "Reserva de emergência", 500),
   createFamily("9", "Castro Viana", "Patrimônio internacional", 2000),
