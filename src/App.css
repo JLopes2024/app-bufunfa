@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  /* Dark Mode Premium Palette */
+  --bg-app: #0B0E14; /* Fundo super escuro */
+  --surface: #151A23; /* Cards escuros */
+  --surface-hover: #1E2532;
+  
+  /* Neon Accents */
+  --nu-purple: #9D4EDD; /* Roxo Cyber */
+  --nu-purple-dark: #7B2CBF;
+  --nu-purple-light: rgba(157, 78, 221, 0.15);
+  
+  /* Status Colors (Neon) */
+  --success: #00FF87; /* Verde Laser */
+  --success-bg: rgba(0, 255, 135, 0.1);
+  --danger: #FF0054; /* Rosa/Vermelho Neon */
+  --danger-bg: rgba(255, 0, 84, 0.1);
+  --warning: #FFBD00; /* Dourado */
+  
+  /* Typography */
+  --text-main: #F8F9FA;
+  --text-muted: #8D99AE;
+  --border-light: #2B2D42;
+  
+  /* UI Tokens */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --shadow-sm: 0 4px 12px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 20px rgba(157, 78, 221, 0.4);
+  --shadow-glow-success: 0 0 20px rgba(0, 255, 135, 0.3);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background-color: var(--bg-app); color: var(--text-main); font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; padding: 20px; }
+.app-container { max-width: 1400px; margin: 0 auto; position: relative; animation: fadeIn 0.5s ease-out; }
+
+/* Micro-interações */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulseGlow { 0% { box-shadow: 0 0 0 rgba(0,255,135,0); } 50% { box-shadow: var(--shadow-glow-success); } 100% { box-shadow: 0 0 0 rgba(0,255,135,0); } }
+
+button { font-family: inherit; transition: var(--transition); }
+button:active:not(:disabled) { transform: scale(0.95); }
+button:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(100%); }
+
+/* Header */
+.header { display: flex; justify-content: space-between; align-items: center; background: var(--surface); padding: 24px 32px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 24px; border: 1px solid var(--border-light); }
+.header h1 { font-size: 1.8rem; font-weight: 900; color: var(--text-main); text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 10px rgba(255,255,255,0.1); }
+.header h1 span { color: var(--nu-purple); }
+.header-actions { display: flex; gap: 12px; align-items: center; }
+
+/* Buttons Premium */
+.btn { padding: 12px 24px; border-radius: 99px; border: none; font-weight: 700; font-size: 0.95rem; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; }
+.btn-primary { background: linear-gradient(135deg, var(--nu-purple), var(--nu-purple-dark)); color: white; box-shadow: 0 4px 15px rgba(157, 78, 221, 0.3); }
+.btn-primary:hover:not(:disabled) { box-shadow: var(--shadow-glow); transform: translateY(-2px); }
+.btn-outline { background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); color: var(--text-main); backdrop-filter: blur(10px); }
+.btn-outline:hover:not(:disabled) { background: rgba(255,255,255,0.1); border-color: var(--text-muted); }
+.btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(255,0,84,0.3); }
+.btn-danger:hover:not(:disabled) { background: rgba(255,0,84,0.2); box-shadow: 0 0 15px rgba(255,0,84,0.4); }
+
+.main-grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
+@media (min-width: 1024px) { .main-grid { grid-template-columns: 2.2fr 1fr; } }
+
+/* Cards Gamificados */
+.panel { background: var(--surface); padding: 32px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 24px; border: 1px solid var(--border-light); position: relative; overflow: hidden; }
+.families-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; margin-top: 20px; }
+.family-card { padding: 20px; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: linear-gradient(145deg, var(--surface), #11151c); cursor: pointer; text-align: left; position: relative; transition: var(--transition); }
+.family-card:hover { border-color: var(--nu-purple); transform: translateY(-4px); box-shadow: var(--shadow-glow); }
+.family-card.active { border-color: var(--success); background: var(--success-bg); box-shadow: var(--shadow-glow-success); }
+.family-card .title { font-weight: 800; font-size: 1.1rem; margin-bottom: 8px; color: var(--text-main); }
+
+/* Monospace Numbers para efeito Odômetro */
+.amount, .display-amount, .val, .text-success, .text-danger { font-variant-numeric: tabular-nums; }
+.family-card .amount { font-size: 1.25rem; font-weight: 900; }
+
+.tabs { display: flex; gap: 24px; margin-bottom: 32px; border-bottom: 2px solid var(--border-light); }
+.tab-btn { background: transparent; border: none; padding: 12px 0; font-weight: 700; color: var(--text-muted); cursor: pointer; position: relative; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+.tab-btn:hover { color: var(--text-main); }
+.tab-btn.active { color: var(--nu-purple); text-shadow: 0 0 8px rgba(157,78,221,0.5); }
+.tab-btn.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 3px; background: var(--nu-purple); border-radius: 3px 3px 0 0; box-shadow: var(--shadow-glow); }
+
+/* Inputs Estilo Terminal */
+.form-group { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.form-input { padding: 16px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); font-size: 1rem; background: rgba(0,0,0,0.3); color: var(--text-main); transition: var(--transition); flex: 1; min-width: 200px; font-family: inherit; font-weight: 600; }
+.form-input:focus { outline: none; border-color: var(--nu-purple); background: #000; box-shadow: 0 0 0 3px var(--nu-purple-light); }
+.form-input::placeholder { color: #4A5568; }
+
+.text-success { color: var(--success); font-weight: 800; text-shadow: 0 0 10px rgba(0,255,135,0.3); }
+.text-danger { color: var(--danger); font-weight: 800; text-shadow: 0 0 10px rgba(255,0,84,0.3); }
+.text-muted { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }
+.display-amount { font-size: 3.5rem; font-weight: 900; letter-spacing: -1.5px; margin-top: 8px; }
+
+.badge { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 99px; font-size: 0.75rem; font-weight: 800; background: var(--border-light); color: var(--text-main); text-transform: uppercase; letter-spacing: 1px; }
+
+.attr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; }
+.attr-box { background: rgba(0,0,0,0.2); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-light); }
+.attr-box h4 { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.attr-box .val { font-size: 2rem; font-weight: 900; color: var(--text-main); }
+
+/* Scoreboard de Projeção (TV) */
+.ranking-item { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 1px solid var(--border-light); transition: var(--transition); }
+.ranking-item:hover { background: rgba(255,255,255,0.02); transform: scale(1.02); padding-left: 10px; padding-right: 10px; border-radius: 8px; border-bottom-color: transparent; }
+.ranking-item:last-child { border-bottom: none; }
+.rank-position { font-weight: 900; font-size: 1.8rem; width: 40px; color: var(--text-muted); font-style: italic; }
+.rank-position.first { color: var(--warning); text-shadow: 0 0 15px rgba(255,189,0,0.5); font-size: 2.2rem; }
+.ranking-item .family-name { font-weight: 800; font-size: 1.3rem; color: var(--text-main); }
+.ranking-item .family-score { font-size: 1.5rem; }
+
+.toast { position: fixed; bottom: 32px; right: 32px; background: var(--success); color: #000; padding: 16px 32px; border-radius: var(--radius-sm); font-weight: 900; z-index: 9999; box-shadow: var(--shadow-glow-success); animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-transform: uppercase; letter-spacing: 1px; }
+@keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
