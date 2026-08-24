@@ -20,6 +20,9 @@ export default function App() {
   const [invAction, setInvAction] = useState('investir');
   const [invKey, setInvKey] = useState('poupanca');
   const [invAmount, setInvAmount] = useState('');
+  
+  // Estado para Renda Variável
+  const [marketTarget, setMarketTarget] = useState('acoes');
 
   const [loanAmount, setLoanAmount] = useState('');
   const [loanInstallments, setLoanInstallments] = useState(2);
@@ -42,25 +45,18 @@ export default function App() {
   };
 
   if (!state.hasStarted) {
-    const handleToggleSetup = (id) => {
-      setSetupSelected(prev => prev.includes(id) ? prev.filter(fid => fid !== id) : [...prev, id]);
-    };
-
+    const handleToggleSetup = (id) => { setSetupSelected(prev => prev.includes(id) ? prev.filter(fid => fid !== id) : [...prev, id]); };
     const handleStartGame = () => {
       if (setupSelected.length < 2) return;
       const selectedFamilies = predefinedFamilies.filter(f => setupSelected.includes(f.id));
       setState({ round: 1, isFinished: false, hasStarted: true, families: selectedFamilies });
       showToast("SISTEMA INICIADO COM SUCESSO!");
     };
-
     return (
       <div className="app-container">
         {toast && <div className="toast">✓ {toast}</div>}
         <header className="header">
-          <div>
-            <h1>SETUP <span>BUFUNFA®</span></h1>
-            <p className="text-muted" style={{marginTop: '8px'}}>Selecione as famílias participantes (Mín. 2)</p>
-          </div>
+          <div><h1>SETUP <span>BUFUNFA®</span></h1><p className="text-muted" style={{marginTop: '8px'}}>Selecione as famílias participantes (Mín. 2)</p></div>
           <div className="header-actions">
             <span style={{ fontWeight: '800', marginRight: '16px', color: 'var(--nu-purple)' }}>[{setupSelected.length}] ATIVAS</span>
             <button className="btn btn-primary" onClick={handleStartGame} disabled={setupSelected.length < 2}>BOOT SYSTEM</button>
@@ -72,10 +68,7 @@ export default function App() {
               const isSelected = setupSelected.includes(f.id);
               return (
                 <div key={f.id} onClick={() => handleToggleSetup(f.id)} className={`family-card ${isSelected ? 'active' : ''}`} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
-                  <div>
-                    <div className="title">{f.name}</div>
-                    <div className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '16px' }}>{f.project}</div>
-                  </div>
+                  <div><div className="title">{f.name}</div><div className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '16px' }}>{f.project}</div></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
                     <span className="amount">{formatMoney(f.balance)}</span>
                     {isSelected ? <span className="badge" style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>ONLINE</span> : <span className="badge" style={{ background: 'rgba(0,0,0,0.5)', color: 'var(--text-muted)' }}>OFFLINE</span>}
@@ -104,10 +97,7 @@ export default function App() {
 
   const dispatchToFamily = (payload) => {
     if (!selectedId || state.isFinished) return;
-    setState(prev => ({
-      ...prev,
-      families: prev.families.map(f => f.id === selectedId ? applyOperation(f, { ...payload, round: prev.round }) : f)
-    }));
+    setState(prev => ({ ...prev, families: prev.families.map(f => f.id === selectedId ? applyOperation(f, { ...payload, round: prev.round }) : f) }));
   };
 
   const toggleFamilyReady = () => {
@@ -129,22 +119,14 @@ export default function App() {
   const handleJogarCarta = (e) => {
     e.preventDefault();
     if (!selectedCardId) return;
-
     if (selectedCardId === 'custom') {
       const parsedAmount = Number(effectAmount.replace(',', '.'));
-      if (effectType !== 'sem_salario' && (isNaN(parsedAmount) || parsedAmount <= 0)) {
-        alert("Valor inválido."); return;
-      }
-      const effectData = { 
-        id: crypto.randomUUID(), name: effectName, type: effectType, 
-        amount: parsedAmount || 0, duration: effectDuration === 'infinito' ? 'infinito' : Number(effectDuration) 
-      };
-      dispatchToFamily({ type: 'novo_efeito', effectData });
+      if (effectType !== 'sem_salario' && (isNaN(parsedAmount) || parsedAmount <= 0)) { alert("Valor inválido."); return; }
+      dispatchToFamily({ type: 'novo_efeito', effectData: { id: crypto.randomUUID(), name: effectName, type: effectType, amount: parsedAmount || 0, duration: effectDuration === 'infinito' ? 'infinito' : Number(effectDuration) } });
       showToast(`EFEITO MANUAL APLICADO!`);
       setEffectName(''); setEffectAmount('');
     } else {
-      const card = GAME_CARDS.find(c => c.id === selectedCardId);
-      dispatchToFamily({ type: 'jogar_carta', card });
+      dispatchToFamily({ type: 'jogar_carta', card: GAME_CARDS.find(c => c.id === selectedCardId) });
       showToast(`CARTA PROCESSADA!`);
     }
     setSelectedCardId('');
@@ -154,41 +136,42 @@ export default function App() {
     e.preventDefault();
     const val = Number(invAmount.replace(',', '.'));
     if (isNaN(val) || val <= 0) return;
-
     if (invAction === 'investir') {
-      if (selectedFamily.balance >= val) { dispatchToFamily({ type: 'investir', amount: val, invKey }); showToast("APLICAÇÃO EFETUADA!"); } 
-      else alert("SALDO INSUFICIENTE.");
+      if (selectedFamily.balance >= val) { dispatchToFamily({ type: 'investir', amount: val, invKey }); showToast("APLICAÇÃO EFETUADA!"); } else alert("SALDO INSUFICIENTE.");
     } else {
-      if (selectedFamily.investments[invKey] >= val) { dispatchToFamily({ type: 'resgatar', amount: val, invKey }); showToast("RESGATE CONCLUÍDO!"); } 
-      else alert("MONTANTE INDISPONÍVEL.");
+      if (selectedFamily.investments[invKey] >= val) { dispatchToFamily({ type: 'resgatar', amount: val, invKey }); showToast("RESGATE CONCLUÍDO!"); } else alert("MONTANTE INDISPONÍVEL.");
     }
     setInvAmount('');
+  };
+
+  // Botões de Dado - Renda Variável
+  const handleMarketRoll = (diceRoll) => {
+    if (selectedFamily.investments[marketTarget] <= 0) {
+      alert(`A família não possui saldo em ${marketTarget.toUpperCase()} para oscilar.`);
+      return;
+    }
+    dispatchToFamily({ type: 'market_oscillation', invKey: marketTarget, diceRoll });
+    showToast(`DADO ${diceRoll} ROLADO! Mercado ajustado.`);
   };
 
   const handleEmprestimo = (e) => {
     e.preventDefault();
     const val = Number(loanAmount.replace(',', '.'));
     if (isNaN(val) || val <= 0) return;
-
-    const wealth = getWealth(selectedFamily.balance, selectedFamily.investments);
-    const credit = getCreditLimit(wealth);
-
-    if (selectedFamily.balance < 0 && masterPassword !== '1234') {
-      alert("CONTA BLOQUEADA: Requer senha Master (1234)."); return;
-    }
+    const credit = getCreditLimit(getWealth(selectedFamily.balance, selectedFamily.investments));
+    if (selectedFamily.balance < 0 && masterPassword !== '1234') { alert("CONTA BLOQUEADA: Requer senha Master (1234)."); return; }
     if (val > credit.maxLoan) { alert(`LIMITE EXCEDIDO (Máx: ${formatMoney(credit.maxLoan)})`); return; }
     if (loanInstallments > credit.maxInstallments) { alert(`PARCELAS EXCEDIDAS (Máx: ${credit.maxInstallments}x)`); return; }
-
-    const totalWithInterest = val * (1 + credit.interestRate * loanInstallments);
+    
     dispatchToFamily({ 
       type: 'novo_emprestimo', 
-      loanData: { id: crypto.randomUUID(), name: `Crédito Direto (${(credit.interestRate * 100).toFixed(0)}% a.m.)`, totalPrincipal: val, totalInstallments: Number(loanInstallments), currentInstallment: 1, installmentValue: totalWithInterest / loanInstallments } 
+      loanData: { id: crypto.randomUUID(), name: `Crédito Direto (${(credit.interestRate * 100).toFixed(0)}% a.m.)`, totalPrincipal: val, totalInstallments: Number(loanInstallments), currentInstallment: 1, installmentValue: (val * (1 + credit.interestRate * loanInstallments)) / loanInstallments } 
     });
     showToast("CRÉDITO LIBERADO!");
     setLoanAmount(''); setMasterPassword('');
   };
 
-if (view === 'relatorio') {
+  if (view === 'relatorio') {
     return (
       <div className="app-container">
         <header className="header">
@@ -202,24 +185,16 @@ if (view === 'relatorio') {
         <main>
           {ranking.map((family, index) => (
             <section key={family.id} className="panel" style={{ padding: '32px' }}>
-              
-              {/* --- INÍCIO DA CORREÇÃO DE RESPONSIVIDADE (FLEX-WRAP E CLAMP) --- */}
               <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px', alignItems: 'center', marginBottom: '24px', borderBottom:'1px solid var(--border-light)', paddingBottom:'24px' }}>
                 <div style={{ flex: '1 1 min-content' }}>
-                  <h2 style={{ color: index===0?'var(--warning)':'var(--text-main)', fontWeight: '900', fontSize: 'clamp(1.2rem, 3vw, 1.8rem)' }}>
-                    {index + 1}º LUGAR: {family.name}
-                  </h2>
+                  <h2 style={{ color: index===0?'var(--warning)':'var(--text-main)', fontWeight: '900', fontSize: 'clamp(1.2rem, 3vw, 1.8rem)' }}>{index + 1}º LUGAR: {family.name}</h2>
                   <p className="text-muted" style={{marginTop:'8px'}}>Felicidade: {family.happiness} • Energia: {family.energy}</p>
                 </div>
                 <div style={{ textAlign: 'right', flex: '1 1 auto' }}>
                   <p className="text-muted" style={{fontWeight:'700', letterSpacing: '1px'}}>PATRIMÔNIO FINAL</p>
-                  <div className={`display-amount ${getWealth(family.balance, family.investments) < 0 ? 'text-danger' : 'text-success'}`} style={{marginTop:'0'}}>
-                    {formatMoney(getWealth(family.balance, family.investments))}
-                  </div>
+                  <div className={`display-amount ${getWealth(family.balance, family.investments) < 0 ? 'text-danger' : 'text-success'}`} style={{marginTop:'0'}}>{formatMoney(getWealth(family.balance, family.investments))}</div>
                 </div>
               </div>
-              {/* --- FIM DA CORREÇÃO --- */}
-
               {family.history?.length === 0 ? <p className="text-muted">Sem registros na blockchain.</p> : (
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.95rem' }}>
@@ -255,8 +230,7 @@ if (view === 'relatorio') {
     );
   }
 
-  const familyWealth = selectedFamily ? getWealth(selectedFamily.balance, selectedFamily.investments) : 0;
-  const familyCredit = getCreditLimit(familyWealth);
+  const familyCredit = getCreditLimit(selectedFamily ? getWealth(selectedFamily.balance, selectedFamily.investments) : 0);
   const selectedCardData = GAME_CARDS.find(c => c.id === selectedCardId);
 
   return (
@@ -293,7 +267,7 @@ if (view === 'relatorio') {
 
           {selectedFamily ? (
             <div className="panel">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', alignItems: 'flex-start', marginBottom: '32px' }}>
                 <div><h2 style={{ fontSize: '2.5rem', fontWeight: '900', letterSpacing: '-1px', color:'var(--text-main)', textTransform:'uppercase' }}>{selectedFamily.name}</h2><p className="text-muted" style={{fontSize:'1.1rem'}}>{selectedFamily.project}</p></div>
                 <div style={{ textAlign: 'right' }}><p className="text-muted" style={{ marginBottom: '4px', fontWeight:'700', letterSpacing:'1px' }}>CAIXA LIVRE</p><div className={`display-amount ${selectedFamily.balance < 0 ? 'text-danger' : 'text-success'}`}>{formatMoney(selectedFamily.balance)}</div></div>
               </div>
@@ -312,11 +286,12 @@ if (view === 'relatorio') {
                 <>
                   <div className="tabs">
                     <button className={`tab-btn ${activeTab === 'caixa' ? 'active' : ''}`} onClick={() => setActiveTab('caixa')}>HUB FINANCEIRO</button>
-                    <button className={`tab-btn ${activeTab === 'investimentos' ? 'active' : ''}`} onClick={() => setActiveTab('investimentos')}>PORTFÓLIO</button>
+                    <button className={`tab-btn ${activeTab === 'investimentos' ? 'active' : ''}`} onClick={() => setActiveTab('investimentos')}>PORTFÓLIO & MERCADO</button>
                     <button className={`tab-btn ${activeTab === 'emprestimos' ? 'active' : ''}`} onClick={() => setActiveTab('emprestimos')}>LINHAS DE CRÉDITO</button>
                     <button className={`tab-btn ${activeTab === 'rpg' ? 'active' : ''}`} onClick={() => setActiveTab('rpg')}>MESA RPG</button>
                   </div>
 
+                  {/* ABA CAIXA */}
                   {activeTab === 'caixa' && (
                     <form onSubmit={handleCaixa} className="form-group">
                       <select className="form-input" value={opType} onChange={(e) => setOpType(e.target.value)} style={{ flex: '0 1 220px' }}>
@@ -329,14 +304,18 @@ if (view === 'relatorio') {
                     </form>
                   )}
 
+                  {/* ABA INVESTIMENTOS & MERCADO */}
                   {activeTab === 'investimentos' && (
                     <div>
                        <div className="attr-grid">
-                          <div className="attr-box"><h4 style={{color:'var(--success)'}}>POUPANÇA</h4><div className="val">{formatMoney(selectedFamily.investments.poupanca)}</div></div>
-                          <div className="attr-box"><h4 style={{color:'var(--nu-purple)'}}>CDB</h4><div className="val">{formatMoney(selectedFamily.investments.cdb)}</div></div>
-                          <div className="attr-box"><h4 style={{color:'var(--warning)'}}>TESOURO</h4><div className="val">{formatMoney(selectedFamily.investments.tesouro)}</div></div>
+                          <div className="attr-box"><h4 style={{color:'var(--success)'}}>POUPANÇA</h4><div className="val" style={{fontSize:'1.5rem'}}>{formatMoney(selectedFamily.investments.poupanca)}</div></div>
+                          <div className="attr-box"><h4 style={{color:'var(--nu-purple)'}}>CDB</h4><div className="val" style={{fontSize:'1.5rem'}}>{formatMoney(selectedFamily.investments.cdb)}</div></div>
+                          <div className="attr-box"><h4 style={{color:'var(--warning)'}}>TESOURO</h4><div className="val" style={{fontSize:'1.5rem'}}>{formatMoney(selectedFamily.investments.tesouro)}</div></div>
+                          <div className="attr-box" style={{border:'1px solid var(--danger)'}}><h4 style={{color:'var(--danger)'}}>AÇÕES</h4><div className="val" style={{fontSize:'1.5rem'}}>{formatMoney(selectedFamily.investments.acoes)}</div></div>
+                          <div className="attr-box" style={{border:'1px solid #38bdf8'}}><h4 style={{color:'#38bdf8'}}>F. IMOBILIÁRIO</h4><div className="val" style={{fontSize:'1.5rem'}}>{formatMoney(selectedFamily.investments.fii)}</div></div>
                        </div>
-                       <form onSubmit={handleInvestir} className="form-group" style={{marginTop: '32px'}}>
+                       
+                       <form onSubmit={handleInvestir} className="form-group" style={{marginTop: '24px'}}>
                          <select className="form-input" value={invAction} onChange={e=>setInvAction(e.target.value)} style={{ flex: '0 1 200px' }}>
                             <option value="investir">APORTE (+)</option>
                             <option value="resgatar">LIQUIDAÇÃO (-)</option>
@@ -345,13 +324,40 @@ if (view === 'relatorio') {
                             <option value="poupanca">CAIXINHA POUPANÇA</option>
                             <option value="cdb">CDB BANCÁRIO</option>
                             <option value="tesouro">TESOURO DIRETO</option>
+                            <option value="acoes">AÇÕES (ALTO RISCO)</option>
+                            <option value="fii">FUNDO IMOBILIÁRIO (MÉDIO)</option>
                          </select>
                          <input className="form-input" type="number" step="0.01" placeholder="VALOR (R$)" value={invAmount} onChange={e=>setInvAmount(e.target.value)} required />
                          <button type="submit" className={invAction === 'investir' ? 'btn btn-primary' : 'btn btn-danger'}>EXECUTAR ORDEM</button>
                       </form>
+
+                      {/* --- NOVO CONSOLE DE OSCILAÇÃO (DADOS) --- */}
+                      <div style={{ marginTop: '32px', paddingTop: '32px', borderTop: '1px dashed var(--border-light)' }}>
+                        <h4 style={{ fontSize: '1.1rem', marginBottom: '16px', fontWeight: '900', textTransform: 'uppercase', color: 'var(--text-main)' }}>
+                          Console de Mercado (Rolar Dados)
+                        </h4>
+                        <p className="text-muted" style={{ marginBottom: '16px' }}>Selecione o ativo e clique no botão correspondente ao dado rolado:</p>
+                        
+                        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          <select className="form-input" value={marketTarget} onChange={e => setMarketTarget(e.target.value)} style={{ flex: '0 1 250px' }}>
+                            <option value="acoes">Ações (1-2 Perde 50% | 5-6 Dobra)</option>
+                            <option value="fii">FII (1-2 Perde 10% | 3-6 Ganha 20%)</option>
+                          </select>
+                          
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {[1, 2, 3, 4, 5, 6].map(num => (
+                              <button key={num} type="button" onClick={() => handleMarketRoll(num)} className="btn btn-outline" style={{ padding: '12px 16px', fontSize: '1.2rem', fontWeight: '900', width: '60px' }}>
+                                {num}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
                   )}
 
+                  {/* ABA EMPRÉSTIMOS */}
                   {activeTab === 'emprestimos' && (
                     <div>
                       <div style={{ background: 'rgba(255,255,255,0.02)', padding: '24px', borderRadius: 'var(--radius-md)', marginBottom: '32px', border:'1px solid var(--border-light)' }}>
@@ -384,6 +390,7 @@ if (view === 'relatorio') {
                     </div>
                   )}
 
+                  {/* ABA RPG */}
                   {activeTab === 'rpg' && (
                     <div>
                       <div className="attr-grid" style={{ marginBottom: '32px' }}>
@@ -399,7 +406,6 @@ if (view === 'relatorio') {
                       
                       <form onSubmit={handleJogarCarta} className="form-group" style={{ borderTop: '1px solid var(--border-light)', paddingTop: '32px' }}>
                          <h4 style={{width: '100%', fontSize: '1.1rem', fontWeight:'900', textTransform:'uppercase', color:'var(--text-main)'}}>Deck Oficial do Jogo</h4>
-                         
                          <select className="form-input" value={selectedCardId} onChange={e=>setSelectedCardId(e.target.value)} style={{ width: '100%' }} required>
                             <option value="" disabled>--- ESCANEAR CARTA JOGADA ---</option>
                             <optgroup label="[+] OPORTUNIDADES (DECK VERDE)">
