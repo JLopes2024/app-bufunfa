@@ -1,6 +1,5 @@
 // --- BANCO DE DADOS DE CARTAS DO JOGO ---
 export const GAME_CARDS = [
-  // Oportunidades
   { id: 'op_bonus', name: 'Bônus de Desempenho', category: 'Oportunidade', type: 'instant', amount: 400, happiness: 1 },
   { id: 'op_cashback', name: 'Cashback', category: 'Oportunidade', type: 'instant', amount: 150, happiness: 0 },
   { id: 'op_horaextra', name: 'Hora Extra', category: 'Oportunidade', type: 'instant', amount: 300, happiness: -1 },
@@ -11,8 +10,6 @@ export const GAME_CARDS = [
   { id: 'op_promocao', name: 'Promoção (Renda Contínua)', category: 'Oportunidade', type: 'continuous', effectType: 'receita_fixa', amount: 250, duration: 'infinito', happiness: 0 },
   { id: 'op_cursopago', name: 'Curso Pago por Outro', category: 'Oportunidade', type: 'instant', amount: 0, happiness: 2 },
   { id: 'op_wifi', name: 'Wi-Fi Grátis', category: 'Oportunidade', type: 'instant', amount: 120, happiness: 0 },
-  
-  // Imprevistos
   { id: 'imp_celular', name: 'Celular Quebrou', category: 'Imprevisto', type: 'instant', amount: -600, happiness: 0 },
   { id: 'imp_medico', name: 'Consulta Médica', category: 'Imprevisto', type: 'instant', amount: -250, happiness: 0 },
   { id: 'imp_pneu', name: 'Furou o Pneu', category: 'Imprevisto', type: 'instant', amount: -180, happiness: 0 },
@@ -29,10 +26,7 @@ export const createFamily = (id, name, project, balance) => ({
   happiness: 0, energy: 5, reputation: 0,
   attributes: { inteligencia: 0, empatia: 0, resiliencia: 0, edFinanceira: 0, negociacao: 0 },
   investments: { poupanca: 0, cdb: 0, tesouro: 0, fii: 0, acoes: 0 },
-  activeEffects: [],
-  loans: [],
-  history: [],
-  isReady: false
+  activeEffects: [], loans: [], history: [], isReady: false
 });
 
 export const getInitialFamilies = () => [
@@ -41,19 +35,14 @@ export const getInitialFamilies = () => [
   createFamily("3", "Souza Lima", "Independência financeira", 2000),
   createFamily("4", "Mendes Rocha", "Formação dos jovens", 150),
   createFamily("5", "Barbosa Santos", "Adquirir maquinário", 700),
-  createFamily("6", "Camargo Faria", "Reestruturar finanças", -200),
+  createFamily("6", "Camargo Faria", "Reestruturar finanças", 200),
   createFamily("7", "Xavier Duarte", "Limpar o nome e reformar", -200),
   createFamily("8", "Martins Alencar", "Reserva de emergência", 500),
   createFamily("9", "Castro Viana", "Patrimônio internacional", 2000),
   createFamily("10", "Pires Nogueira", "Acessibilidade e quitar empréstimos", 250),
 ];
 
-export const initialState = () => ({
-  round: 1,
-  isFinished: false,
-  hasStarted: false,
-  families: [],
-});
+export const initialState = () => ({ round: 1, isFinished: false, hasStarted: false, families: [] });
 
 export const getWealth = (balance, investments) => {
   const invTotal = Object.values(investments || {}).reduce((sum, val) => sum + val, 0);
@@ -76,7 +65,6 @@ export const processNextRound = (state) => {
     let activeLoans = [];
 
     (family.activeEffects || []).forEach(effect => {
-      // Deduz ou acrescenta valores dos Efeitos Contínuos
       if (effect.type === 'deducao_fixa') {
         currentBalance -= effect.amount;
         turnHistory.push({ id: crypto.randomUUID(), round: state.round, type: 'efeito_ativo', description: effect.name, amount: -effect.amount, balanceAfter: getWealth(currentBalance, newInvestments) });
@@ -84,31 +72,20 @@ export const processNextRound = (state) => {
         currentBalance += effect.amount;
         turnHistory.push({ id: crypto.randomUUID(), round: state.round, type: 'efeito_ativo', description: effect.name, amount: effect.amount, balanceAfter: getWealth(currentBalance, newInvestments) });
       }
-      
       if (effect.type === 'sem_salario') skipSalary = true;
-
-      // Controle de tempo do Efeito
-      if (effect.duration === 'infinito') {
-        remainingEffects.push(effect);
-      } else if (effect.duration > 1) {
-        remainingEffects.push({ ...effect, duration: effect.duration - 1 });
-      }
+      if (effect.duration === 'infinito') { remainingEffects.push(effect); } 
+      else if (effect.duration > 1) { remainingEffects.push({ ...effect, duration: effect.duration - 1 }); }
     });
 
     (family.loans || []).forEach(loan => {
       const installmentValue = loan.installmentValue;
       currentBalance -= installmentValue;
-      
       turnHistory.push({
         id: crypto.randomUUID(), round: state.round, type: 'parcela_emprestimo',
         description: `Parcela ${loan.currentInstallment}/${loan.totalInstallments} - ${loan.name}`,
-        amount: -installmentValue,
-        balanceAfter: getWealth(currentBalance, newInvestments)
+        amount: -installmentValue, balanceAfter: getWealth(currentBalance, newInvestments)
       });
-
-      if (loan.currentInstallment < loan.totalInstallments) {
-        activeLoans.push({ ...loan, currentInstallment: loan.currentInstallment + 1 });
-      }
+      if (loan.currentInstallment < loan.totalInstallments) { activeLoans.push({ ...loan, currentInstallment: loan.currentInstallment + 1 }); }
     });
 
     const yields = [
@@ -125,11 +102,7 @@ export const processNextRound = (state) => {
       }
     });
 
-    return { 
-      ...family, balance: currentBalance, history: turnHistory, 
-      activeEffects: remainingEffects, investments: newInvestments, 
-      loans: activeLoans, _skipSalary: skipSalary, isReady: false 
-    };
+    return { ...family, balance: currentBalance, history: turnHistory, activeEffects: remainingEffects, investments: newInvestments, loans: activeLoans, _skipSalary: skipSalary, isReady: false };
   });
 
   return { ...state, round: state.round + 1, families: updatedFamilies };
@@ -137,73 +110,72 @@ export const processNextRound = (state) => {
 
 export const applyOperation = (family, payload) => {
   let updated = { 
-    ...family, 
-    history: [...(family.history || [])],
-    investments: { ...(family.investments || {}) },
-    attributes: { ...(family.attributes || {}) },
-    activeEffects: [...(family.activeEffects || [])],
-    loans: [...(family.loans || [])]
+    ...family, history: [...(family.history || [])], investments: { ...(family.investments || {}) },
+    attributes: { ...(family.attributes || {}) }, activeEffects: [...(family.activeEffects || [])], loans: [...(family.loans || [])]
   };
   
-  const { type, amount, description, round, effectData, attrData, effectId, loanData, card } = payload;
+  const { type, amount, description, round, effectData, effectId, loanData, card, invKey, diceRoll } = payload;
 
-  if (type === 'toggle_ready') {
-    updated.isReady = !updated.isReady;
-  }
+  if (type === 'toggle_ready') { updated.isReady = !updated.isReady; }
   else if (type === 'deposito' || type === 'pagamento' || type === 'imprevisto') {
     if (type === 'deposito' && family._skipSalary && description.toLowerCase().includes('salário')) return updated;
-    
     updated.balance = type === 'deposito' ? updated.balance + amount : updated.balance - amount;
     updated.history.push({ id: crypto.randomUUID(), round, type, amount: type === 'deposito' ? amount : -amount, description, balanceAfter: getWealth(updated.balance, updated.investments) });
   } 
-  
-  // NOVA LÓGICA DE CARTAS OFICIAIS DO JOGO
   else if (type === 'jogar_carta') {
-    // 1. Aplica atributos (Felicidade)
-    if (card.happiness !== 0) {
-      updated.happiness += card.happiness;
-    }
-
-    // 2. Aplica efeitos financeiros
+    if (card.happiness !== 0) updated.happiness += card.happiness;
     if (card.type === 'instant' && card.amount !== 0) {
       updated.balance += card.amount;
-      updated.history.push({ 
-        id: crypto.randomUUID(), round, type: 'carta_rpg', amount: card.amount, 
-        description: `Carta Ativada: ${card.name}`, balanceAfter: getWealth(updated.balance, updated.investments) 
-      });
+      updated.history.push({ id: crypto.randomUUID(), round, type: 'carta_rpg', amount: card.amount, description: `Carta Ativada: ${card.name}`, balanceAfter: getWealth(updated.balance, updated.investments) });
     } else if (card.type === 'continuous') {
-      updated.activeEffects.push({
-        id: crypto.randomUUID(), name: card.name, type: card.effectType, 
-        amount: card.amount, duration: card.duration
-      });
+      updated.activeEffects.push({ id: crypto.randomUUID(), name: card.name, type: card.effectType, amount: card.amount, duration: card.duration });
     }
   }
-
-  // Carta customizada pelo mestre
-  else if (type === 'novo_efeito') {
-    updated.activeEffects.push(effectData);
-  }
-  else if (type === 'remover_efeito') {
-    updated.activeEffects = updated.activeEffects.filter(ef => ef.id !== effectId);
-  }
+  else if (type === 'novo_efeito') { updated.activeEffects.push(effectData); }
+  else if (type === 'remover_efeito') { updated.activeEffects = updated.activeEffects.filter(ef => ef.id !== effectId); }
   else if (type === 'investir') {
     updated.balance -= amount;
-    updated.investments[payload.invKey] += amount;
-    updated.history.push({ id: crypto.randomUUID(), round, type: 'investimento', amount: -amount, description: `Aplicação em ${payload.invKey}`, balanceAfter: getWealth(updated.balance, updated.investments) });
+    updated.investments[invKey] += amount;
+    updated.history.push({ id: crypto.randomUUID(), round, type: 'investimento', amount: -amount, description: `Aplicação em ${invKey}`, balanceAfter: getWealth(updated.balance, updated.investments) });
   }
   else if (type === 'resgatar') {
-    updated.investments[payload.invKey] -= amount;
+    updated.investments[invKey] -= amount;
     updated.balance += amount;
-    updated.history.push({ id: crypto.randomUUID(), round, type: 'resgate', amount, description: `Resgate de ${payload.invKey}`, balanceAfter: getWealth(updated.balance, updated.investments) });
+    updated.history.push({ id: crypto.randomUUID(), round, type: 'resgate', amount, description: `Resgate de ${invKey}`, balanceAfter: getWealth(updated.balance, updated.investments) });
   }
   else if (type === 'novo_emprestimo') {
     updated.balance += loanData.totalPrincipal;
     updated.loans.push(loanData);
-    updated.history.push({
-      id: crypto.randomUUID(), round, type: 'emprestimo', amount: loanData.totalPrincipal,
-      description: `Contratação de Empréstimo (${loanData.totalInstallments}x)`,
-      balanceAfter: getWealth(updated.balance, updated.investments)
-    });
+    updated.history.push({ id: crypto.randomUUID(), round, type: 'emprestimo', amount: loanData.totalPrincipal, description: `Contratação de Empréstimo (${loanData.totalInstallments}x)`, balanceAfter: getWealth(updated.balance, updated.investments) });
+  }
+  // NOVO: OSCILAÇÃO DE MERCADO (RENDA VARIÁVEL)
+  else if (type === 'market_oscillation') {
+    const currentAmount = updated.investments[invKey];
+    if (currentAmount > 0) {
+      let multiplier = 1;
+      let oscDescription = '';
+
+      if (invKey === 'acoes') {
+        if (diceRoll <= 2) { multiplier = 0.5; oscDescription = `Crash (Dado ${diceRoll}): Perdeu 50%`; }
+        else if (diceRoll <= 4) { multiplier = 1; oscDescription = `Mercado Estável (Dado ${diceRoll}): Sem alteração`; }
+        else { multiplier = 2; oscDescription = `Mercado em Alta (Dado ${diceRoll}): Dobrou (+100%)!`; }
+      } else if (invKey === 'fii') {
+        if (diceRoll <= 2) { multiplier = 0.9; oscDescription = `Vacância (Dado ${diceRoll}): Perdeu 10%`; }
+        else { multiplier = 1.2; oscDescription = `Dividendos (Dado ${diceRoll}): Ganhou 20%`; }
+      }
+
+      if (multiplier !== 1) {
+        const newAmount = currentAmount * multiplier;
+        const diff = newAmount - currentAmount;
+        updated.investments[invKey] = newAmount;
+        
+        updated.history.push({ 
+          id: crypto.randomUUID(), round, type: 'rendimento', amount: diff, 
+          description: `Mercado (${invKey.toUpperCase()}): ${oscDescription}`, 
+          balanceAfter: getWealth(updated.balance, updated.investments) 
+        });
+      }
+    }
   }
 
   return updated;
