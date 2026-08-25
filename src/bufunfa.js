@@ -19,6 +19,9 @@ export const GAME_CARDS = [
   { id: 'imp_demissao', name: 'Demissão', category: 'Imprevisto', type: 'continuous', effectType: 'sem_salario', amount: 0, duration: 1, happiness: 0 },
   { id: 'imp_saude', name: 'Despesa com Saúde', category: 'Imprevisto', type: 'instant', amount: -200, happiness: 0 },
   { id: 'imp_conserto', name: 'Conserto em Casa', category: 'Imprevisto', type: 'instant', amount: -300, happiness: 0 },
+  
+  // NOVA CARTA ADICIONADA:
+  { id: 'imp_chuva', name: 'Chuva Forte', category: 'Imprevisto', type: 'continuous', effectType: 'salario_metade', amount: 0, duration: 1, happiness: 0 }
 ];
 
 export const createFamily = (id, name, project, balance) => ({
@@ -60,11 +63,11 @@ export const processNextRound = (state) => {
     let currentBalance = family.balance;
     let turnHistory = [...(family.history || [])];
     let remainingEffects = [];
-    let skipSalary = false;
     let newInvestments = { ...(family.investments || {}) };
     let activeLoans = [];
 
     (family.activeEffects || []).forEach(effect => {
+      // Processa apenas as deduções e receitas fixas na virada do mês
       if (effect.type === 'deducao_fixa') {
         currentBalance -= effect.amount;
         turnHistory.push({ id: crypto.randomUUID(), round: state.round, type: 'efeito_ativo', description: effect.name, amount: -effect.amount, balanceAfter: getWealth(currentBalance, newInvestments) });
@@ -72,7 +75,8 @@ export const processNextRound = (state) => {
         currentBalance += effect.amount;
         turnHistory.push({ id: crypto.randomUUID(), round: state.round, type: 'efeito_ativo', description: effect.name, amount: effect.amount, balanceAfter: getWealth(currentBalance, newInvestments) });
       }
-      if (effect.type === 'sem_salario') skipSalary = true;
+      
+      // Controle de tempo de vida de todos os debuffs (incluindo salário e chuva forte)
       if (effect.duration === 'infinito') { remainingEffects.push(effect); } 
       else if (effect.duration > 1) { remainingEffects.push({ ...effect, duration: effect.duration - 1 }); }
     });
@@ -102,7 +106,7 @@ export const processNextRound = (state) => {
       }
     });
 
-    return { ...family, balance: currentBalance, history: turnHistory, activeEffects: remainingEffects, investments: newInvestments, loans: activeLoans, _skipSalary: skipSalary, isReady: false };
+    return { ...family, balance: currentBalance, history: turnHistory, activeEffects: remainingEffects, investments: newInvestments, loans: activeLoans, isReady: false };
   });
 
   return { ...state, round: state.round + 1, families: updatedFamilies };
@@ -117,11 +121,28 @@ export const applyOperation = (family, payload) => {
   const { type, amount, description, round, effectData, effectId, loanData, card, invKey, diceRoll } = payload;
 
   if (type === 'toggle_ready') { updated.isReady = !updated.isReady; }
-  else if (type === 'deposito' || type === 'pagamento' || type === 'imprevisto') {
-    if (type === 'deposito' && family._skipSalary && description.toLowerCase().includes('salário')) return updated;
+  
+  // OPERAÇÕES GERAIS (Livres de bloqueios salariais)
+  else if (type === 'deposito' || type === 'pagamento') {
     updated.balance = type === 'deposito' ? updated.balance + amount : updated.balance - amount;
     updated.history.push({ id: crypto.randomUUID(), round, type, amount: type === 'deposito' ? amount : -amount, description, balanceAfter: getWealth(updated.balance, updated.investments) });
   } 
+  
+  // NOVA ROTA EXCLUSIVA DE SALÁRIO (Interceptada pelas Cartas)
+  else if (type === 'salario') {
+    const isFired = updated.activeEffects.some(e => e.type === 'sem_salario');
+    const hasRain = updated.activeEffects.some(e => e.type === 'salario_metade');
+    
+    if (isFired) {
+      updated.history.push({ id: crypto.randomUUID(), round, type: 'salario_bloqueado', amount: 0, description: `[BLOQUEADO: DEMISSÃO] ${description || 'Salário'}`, balanceAfter: getWealth(updated.balance, updated.investments) });
+    } else {
+      const finalAmount = hasRain ? amount / 2 : amount;
+      const descPrefix = hasRain ? '[CORTADO 50%: CHUVA FORTE] ' : '';
+      updated.balance += finalAmount;
+      updated.history.push({ id: crypto.randomUUID(), round, type: 'salario', amount: finalAmount, description: `${descPrefix}${description || 'Pagamento de Salário'}`, balanceAfter: getWealth(updated.balance, updated.investments) });
+    }
+  }
+
   else if (type === 'jogar_carta') {
     if (card.happiness !== 0) updated.happiness += card.happiness;
     if (card.type === 'instant' && card.amount !== 0) {
@@ -148,13 +169,10 @@ export const applyOperation = (family, payload) => {
     updated.loans.push(loanData);
     updated.history.push({ id: crypto.randomUUID(), round, type: 'emprestimo', amount: loanData.totalPrincipal, description: `Contratação de Empréstimo (${loanData.totalInstallments}x)`, balanceAfter: getWealth(updated.balance, updated.investments) });
   }
-  // NOVO: OSCILAÇÃO DE MERCADO (RENDA VARIÁVEL)
   else if (type === 'market_oscillation') {
     const currentAmount = updated.investments[invKey];
     if (currentAmount > 0) {
-      let multiplier = 1;
-      let oscDescription = '';
-
+      let multiplier = 1; let oscDescription = '';
       if (invKey === 'acoes') {
         if (diceRoll <= 2) { multiplier = 0.5; oscDescription = `Crash (Dado ${diceRoll}): Perdeu 50%`; }
         else if (diceRoll <= 4) { multiplier = 1; oscDescription = `Mercado Estável (Dado ${diceRoll}): Sem alteração`; }
@@ -163,17 +181,11 @@ export const applyOperation = (family, payload) => {
         if (diceRoll <= 2) { multiplier = 0.9; oscDescription = `Vacância (Dado ${diceRoll}): Perdeu 10%`; }
         else { multiplier = 1.2; oscDescription = `Dividendos (Dado ${diceRoll}): Ganhou 20%`; }
       }
-
       if (multiplier !== 1) {
         const newAmount = currentAmount * multiplier;
         const diff = newAmount - currentAmount;
         updated.investments[invKey] = newAmount;
-        
-        updated.history.push({ 
-          id: crypto.randomUUID(), round, type: 'rendimento', amount: diff, 
-          description: `Mercado (${invKey.toUpperCase()}): ${oscDescription}`, 
-          balanceAfter: getWealth(updated.balance, updated.investments) 
-        });
+        updated.history.push({ id: crypto.randomUUID(), round, type: 'rendimento', amount: diff, description: `Mercado (${invKey.toUpperCase()}): ${oscDescription}`, balanceAfter: getWealth(updated.balance, updated.investments) });
       }
     }
   }

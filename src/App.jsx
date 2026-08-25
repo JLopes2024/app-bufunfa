@@ -21,9 +21,7 @@ export default function App() {
   const [invKey, setInvKey] = useState('poupanca');
   const [invAmount, setInvAmount] = useState('');
   
-  // Estado para Renda Variável
   const [marketTarget, setMarketTarget] = useState('acoes');
-
   const [loanAmount, setLoanAmount] = useState('');
   const [loanInstallments, setLoanInstallments] = useState(2);
   const [masterPassword, setMasterPassword] = useState('');
@@ -41,7 +39,7 @@ export default function App() {
 
   const showToast = (message) => {
     setToast(message);
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), 4000);
   };
 
   if (!state.hasStarted) {
@@ -110,8 +108,23 @@ export default function App() {
     e.preventDefault();
     const val = Number(amount.replace(',', '.'));
     if (val > 0) {
+      // Inteligência de Feedback de Salário (Toasts)
+      if (opType === 'salario') {
+        const isFired = selectedFamily.activeEffects.some(ef => ef.type === 'sem_salario');
+        const hasRain = selectedFamily.activeEffects.some(ef => ef.type === 'salario_metade');
+        
+        if (isFired) {
+          showToast(`⛔ SALÁRIO BLOQUEADO (EFEITO: DEMISSÃO)`);
+        } else if (hasRain) {
+          showToast(`⚠️ CHUVA FORTE: Salário cortado para ${formatMoney(val / 2)}!`);
+        } else {
+          showToast(`SALÁRIO DE ${formatMoney(val)} CREDITADO!`);
+        }
+      } else {
+        showToast(`TRANSAÇÃO CONCLUÍDA!`);
+      }
+
       dispatchToFamily({ type: opType, amount: val, description });
-      showToast(`TRANSAÇÃO CONCLUÍDA!`);
       setAmount(''); setDescription('');
     }
   };
@@ -121,8 +134,13 @@ export default function App() {
     if (!selectedCardId) return;
     if (selectedCardId === 'custom') {
       const parsedAmount = Number(effectAmount.replace(',', '.'));
-      if (effectType !== 'sem_salario' && (isNaN(parsedAmount) || parsedAmount <= 0)) { alert("Valor inválido."); return; }
-      dispatchToFamily({ type: 'novo_efeito', effectData: { id: crypto.randomUUID(), name: effectName, type: effectType, amount: parsedAmount || 0, duration: effectDuration === 'infinito' ? 'infinito' : Number(effectDuration) } });
+      if (effectType !== 'sem_salario' && effectType !== 'salario_metade' && (isNaN(parsedAmount) || parsedAmount <= 0)) { 
+        alert("Valor inválido."); return; 
+      }
+      dispatchToFamily({ 
+        type: 'novo_efeito', 
+        effectData: { id: crypto.randomUUID(), name: effectName, type: effectType, amount: parsedAmount || 0, duration: effectDuration === 'infinito' ? 'infinito' : Number(effectDuration) } 
+      });
       showToast(`EFEITO MANUAL APLICADO!`);
       setEffectName(''); setEffectAmount('');
     } else {
@@ -144,7 +162,6 @@ export default function App() {
     setInvAmount('');
   };
 
-  // Botões de Dado - Renda Variável
   const handleMarketRoll = (diceRoll) => {
     if (selectedFamily.investments[marketTarget] <= 0) {
       alert(`A família não possui saldo em ${marketTarget.toUpperCase()} para oscilar.`);
@@ -291,11 +308,12 @@ export default function App() {
                     <button className={`tab-btn ${activeTab === 'rpg' ? 'active' : ''}`} onClick={() => setActiveTab('rpg')}>MESA RPG</button>
                   </div>
 
-                  {/* ABA CAIXA */}
+                  {/* ABA CAIXA (Atualizada com a rota de Salário) */}
                   {activeTab === 'caixa' && (
                     <form onSubmit={handleCaixa} className="form-group">
-                      <select className="form-input" value={opType} onChange={(e) => setOpType(e.target.value)} style={{ flex: '0 1 220px' }}>
-                        <option value="deposito">RECEITA INBOUND (+)</option>
+                      <select className="form-input" value={opType} onChange={(e) => setOpType(e.target.value)} style={{ flex: '0 1 250px' }}>
+                        <option value="salario">PAGAMENTO DE SALÁRIO (+)</option>
+                        <option value="deposito">OUTRA RECEITA INBOUND (+)</option>
                         <option value="pagamento">DESPESA OUTBOUND (-)</option>
                       </select>
                       <input className="form-input" type="number" step="0.01" placeholder="VALOR (R$)" value={amount} onChange={(e) => setAmount(e.target.value)} required />
@@ -304,7 +322,6 @@ export default function App() {
                     </form>
                   )}
 
-                  {/* ABA INVESTIMENTOS & MERCADO */}
                   {activeTab === 'investimentos' && (
                     <div>
                        <div className="attr-grid">
@@ -331,7 +348,6 @@ export default function App() {
                          <button type="submit" className={invAction === 'investir' ? 'btn btn-primary' : 'btn btn-danger'}>EXECUTAR ORDEM</button>
                       </form>
 
-                      {/* --- NOVO CONSOLE DE OSCILAÇÃO (DADOS) --- */}
                       <div style={{ marginTop: '32px', paddingTop: '32px', borderTop: '1px dashed var(--border-light)' }}>
                         <h4 style={{ fontSize: '1.1rem', marginBottom: '16px', fontWeight: '900', textTransform: 'uppercase', color: 'var(--text-main)' }}>
                           Console de Mercado (Rolar Dados)
@@ -357,7 +373,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* ABA EMPRÉSTIMOS */}
                   {activeTab === 'emprestimos' && (
                     <div>
                       <div style={{ background: 'rgba(255,255,255,0.02)', padding: '24px', borderRadius: 'var(--radius-md)', marginBottom: '32px', border:'1px solid var(--border-light)' }}>
@@ -390,7 +405,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* ABA RPG */}
                   {activeTab === 'rpg' && (
                     <div>
                       <div className="attr-grid" style={{ marginBottom: '32px' }}>
@@ -425,7 +439,7 @@ export default function App() {
                              <span className="text-muted" style={{display:'block', marginBottom:'8px'}}>TIPO: {selectedCardData.type === 'instant' ? `Aplicação Imediata` : `Duração: ${selectedCardData.duration === 'infinito' ? 'Permanente' : selectedCardData.duration + ' Mês'}`}</span>
                              <div style={{display:'flex', gap:'24px', fontSize:'1.2rem'}}>
                                <span style={{ color: selectedCardData.amount >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: '900' }}>
-                                 {selectedCardData.amount === 0 ? 'NENHUM CUSTO' : formatMoney(selectedCardData.amount)}
+                                 {selectedCardData.amount === 0 ? 'NENHUM CUSTO FIXO' : formatMoney(selectedCardData.amount)}
                                </span>
                                {selectedCardData.happiness !== 0 && (
                                  <span style={{ fontWeight: '900', color:'var(--warning)' }}>
@@ -442,9 +456,12 @@ export default function App() {
                              <select className="form-input" value={effectType} onChange={e=>setEffectType(e.target.value)}>
                                 <option value="deducao_fixa">DEDUÇÃO RECORRENTE</option>
                                 <option value="receita_fixa">RECEITA RECORRENTE</option>
-                                <option value="sem_salario">BLOQUEIO DE SALÁRIO</option>
+                                <option value="sem_salario">BLOQUEIO DE SALÁRIO TOTAL</option>
+                                <option value="salario_metade">CORTE DE SALÁRIO (50%)</option>
                              </select>
-                             {effectType !== 'sem_salario' && <input className="form-input" type="number" step="0.01" placeholder="VALOR (R$)" value={effectAmount} onChange={e=>setEffectAmount(e.target.value)} style={{ width: '150px' }} />}
+                             {effectType !== 'sem_salario' && effectType !== 'salario_metade' && (
+                               <input className="form-input" type="number" step="0.01" placeholder="VALOR (R$)" value={effectAmount} onChange={e=>setEffectAmount(e.target.value)} style={{ width: '150px' }} />
+                             )}
                              <select className="form-input" value={effectDuration} onChange={e=>setEffectDuration(e.target.value)}>
                                 <option value="infinito">PERMANENTE</option>
                                 <option value="1">1 MÊS</option>
