@@ -31,6 +31,8 @@ export default function App() {
   const [effectType, setEffectType] = useState('deducao_fixa');
   const [effectAmount, setEffectAmount] = useState('');
   const [effectDuration, setEffectDuration] = useState('infinito');
+  // NOVO: Controle de parcelas para carta de Carro Quebrou
+  const [carInstallments, setCarInstallments] = useState(1);
 
   const selectedFamily = state.families.find(f => f.id === selectedId);
   const ranking = getRanking(state.families);
@@ -108,22 +110,15 @@ export default function App() {
     e.preventDefault();
     const val = Number(amount.replace(',', '.'));
     if (val > 0) {
-      // Inteligência de Feedback de Salário (Toasts)
       if (opType === 'salario') {
         const isFired = selectedFamily.activeEffects.some(ef => ef.type === 'sem_salario');
         const hasRain = selectedFamily.activeEffects.some(ef => ef.type === 'salario_metade');
-        
-        if (isFired) {
-          showToast(`⛔ SALÁRIO BLOQUEADO (EFEITO: DEMISSÃO)`);
-        } else if (hasRain) {
-          showToast(`⚠️ CHUVA FORTE: Salário cortado para ${formatMoney(val / 2)}!`);
-        } else {
-          showToast(`SALÁRIO DE ${formatMoney(val)} CREDITADO!`);
-        }
+        if (isFired) showToast(`⛔ SALÁRIO BLOQUEADO (EFEITO: DEMISSÃO)`);
+        else if (hasRain) showToast(`⚠️ CHUVA FORTE: Salário cortado para ${formatMoney(val / 2)}!`);
+        else showToast(`SALÁRIO DE ${formatMoney(val)} CREDITADO!`);
       } else {
         showToast(`TRANSAÇÃO CONCLUÍDA!`);
       }
-
       dispatchToFamily({ type: opType, amount: val, description });
       setAmount(''); setDescription('');
     }
@@ -132,20 +127,20 @@ export default function App() {
   const handleJogarCarta = (e) => {
     e.preventDefault();
     if (!selectedCardId) return;
+    
     if (selectedCardId === 'custom') {
       const parsedAmount = Number(effectAmount.replace(',', '.'));
-      if (effectType !== 'sem_salario' && effectType !== 'salario_metade' && (isNaN(parsedAmount) || parsedAmount <= 0)) { 
-        alert("Valor inválido."); return; 
-      }
-      dispatchToFamily({ 
-        type: 'novo_efeito', 
-        effectData: { id: crypto.randomUUID(), name: effectName, type: effectType, amount: parsedAmount || 0, duration: effectDuration === 'infinito' ? 'infinito' : Number(effectDuration) } 
-      });
+      if (effectType !== 'sem_salario' && effectType !== 'salario_metade' && (isNaN(parsedAmount) || parsedAmount <= 0)) { alert("Valor inválido."); return; }
+      dispatchToFamily({ type: 'novo_efeito', effectData: { id: crypto.randomUUID(), name: effectName, type: effectType, amount: parsedAmount || 0, duration: effectDuration === 'infinito' ? 'infinito' : Number(effectDuration) } });
       showToast(`EFEITO MANUAL APLICADO!`);
       setEffectName(''); setEffectAmount('');
     } else {
-      dispatchToFamily({ type: 'jogar_carta', card: GAME_CARDS.find(c => c.id === selectedCardId) });
-      showToast(`CARTA PROCESSADA!`);
+      const cardData = GAME_CARDS.find(c => c.id === selectedCardId);
+      dispatchToFamily({ type: 'jogar_carta', card: cardData, customData: { installments: carInstallments } });
+      
+      if (cardData.type === 'special_carro') showToast(`FINANCIAMENTO LANÇADO COM SUCESSO!`);
+      else if (cardData.type === 'special_negocio_ruim') showToast(`🚨 FAMÍLIA DECLAROU FALÊNCIA!`);
+      else showToast(`CARTA PROCESSADA!`);
     }
     setSelectedCardId('');
   };
@@ -163,10 +158,7 @@ export default function App() {
   };
 
   const handleMarketRoll = (diceRoll) => {
-    if (selectedFamily.investments[marketTarget] <= 0) {
-      alert(`A família não possui saldo em ${marketTarget.toUpperCase()} para oscilar.`);
-      return;
-    }
+    if (selectedFamily.investments[marketTarget] <= 0) { alert(`Sem saldo em ${marketTarget.toUpperCase()} para oscilar.`); return; }
     dispatchToFamily({ type: 'market_oscillation', invKey: marketTarget, diceRoll });
     showToast(`DADO ${diceRoll} ROLADO! Mercado ajustado.`);
   };
@@ -180,12 +172,8 @@ export default function App() {
     if (val > credit.maxLoan) { alert(`LIMITE EXCEDIDO (Máx: ${formatMoney(credit.maxLoan)})`); return; }
     if (loanInstallments > credit.maxInstallments) { alert(`PARCELAS EXCEDIDAS (Máx: ${credit.maxInstallments}x)`); return; }
     
-    dispatchToFamily({ 
-      type: 'novo_emprestimo', 
-      loanData: { id: crypto.randomUUID(), name: `Crédito Direto (${(credit.interestRate * 100).toFixed(0)}% a.m.)`, totalPrincipal: val, totalInstallments: Number(loanInstallments), currentInstallment: 1, installmentValue: (val * (1 + credit.interestRate * loanInstallments)) / loanInstallments } 
-    });
-    showToast("CRÉDITO LIBERADO!");
-    setLoanAmount(''); setMasterPassword('');
+    dispatchToFamily({ type: 'novo_emprestimo', loanData: { id: crypto.randomUUID(), name: `Crédito Direto (${(credit.interestRate * 100).toFixed(0)}% a.m.)`, totalPrincipal: val, totalInstallments: Number(loanInstallments), currentInstallment: 1, installmentValue: (val * (1 + credit.interestRate * loanInstallments)) / loanInstallments } });
+    showToast("CRÉDITO LIBERADO!"); setLoanAmount(''); setMasterPassword('');
   };
 
   if (view === 'relatorio') {
@@ -308,7 +296,7 @@ export default function App() {
                     <button className={`tab-btn ${activeTab === 'rpg' ? 'active' : ''}`} onClick={() => setActiveTab('rpg')}>MESA RPG</button>
                   </div>
 
-                  {/* ABA CAIXA (Atualizada com a rota de Salário) */}
+                  {/* ABA CAIXA */}
                   {activeTab === 'caixa' && (
                     <form onSubmit={handleCaixa} className="form-group">
                       <select className="form-input" value={opType} onChange={(e) => setOpType(e.target.value)} style={{ flex: '0 1 250px' }}>
@@ -322,6 +310,7 @@ export default function App() {
                     </form>
                   )}
 
+                  {/* ABA INVESTIMENTOS & MERCADO */}
                   {activeTab === 'investimentos' && (
                     <div>
                        <div className="attr-grid">
@@ -352,14 +341,11 @@ export default function App() {
                         <h4 style={{ fontSize: '1.1rem', marginBottom: '16px', fontWeight: '900', textTransform: 'uppercase', color: 'var(--text-main)' }}>
                           Console de Mercado (Rolar Dados)
                         </h4>
-                        <p className="text-muted" style={{ marginBottom: '16px' }}>Selecione o ativo e clique no botão correspondente ao dado rolado:</p>
-                        
                         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
                           <select className="form-input" value={marketTarget} onChange={e => setMarketTarget(e.target.value)} style={{ flex: '0 1 250px' }}>
                             <option value="acoes">Ações (1-2 Perde 50% | 5-6 Dobra)</option>
                             <option value="fii">FII (1-2 Perde 10% | 3-6 Ganha 20%)</option>
                           </select>
-                          
                           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                             {[1, 2, 3, 4, 5, 6].map(num => (
                               <button key={num} type="button" onClick={() => handleMarketRoll(num)} className="btn btn-outline" style={{ padding: '12px 16px', fontSize: '1.2rem', fontWeight: '900', width: '60px' }}>
@@ -373,6 +359,7 @@ export default function App() {
                     </div>
                   )}
 
+                  {/* ABA EMPRÉSTIMOS */}
                   {activeTab === 'emprestimos' && (
                     <div>
                       <div style={{ background: 'rgba(255,255,255,0.02)', padding: '24px', borderRadius: 'var(--radius-md)', marginBottom: '32px', border:'1px solid var(--border-light)' }}>
@@ -405,6 +392,7 @@ export default function App() {
                     </div>
                   )}
 
+                  {/* ABA RPG */}
                   {activeTab === 'rpg' && (
                     <div>
                       <div className="attr-grid" style={{ marginBottom: '32px' }}>
@@ -428,18 +416,29 @@ export default function App() {
                             <optgroup label="[-] IMPREVISTOS (DECK VERMELHO)">
                               {GAME_CARDS.filter(c => c.category === 'Imprevisto').map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
                             </optgroup>
+                            <optgroup label="🌟 ACONTECIMENTOS ESPECIAIS (DADOS E EXTRAS)">
+                              {GAME_CARDS.filter(c => c.category === 'Especial').map(c => (<option key={c.id} value={c.id}>⭐ {c.name}</option>))}
+                            </optgroup>
                             <optgroup label="[!] CONTROLE DE MESTRE">
                               <option value="custom">⚙️ INJETAR STATUS CUSTOMIZADO</option>
                             </optgroup>
                          </select>
 
-                         {selectedCardData && (
-                           <div style={{ width: '100%', padding: '20px', background: selectedCardData.category === 'Oportunidade' ? 'var(--success-bg)' : 'var(--danger-bg)', borderRadius: 'var(--radius-sm)', border:`1px solid ${selectedCardData.category === 'Oportunidade' ? 'var(--success)' : 'var(--danger)'}` }}>
-                             <strong style={{display:'block', marginBottom:'8px', fontSize:'1.1rem'}}>ALVO: {selectedCardData.name}</strong>
-                             <span className="text-muted" style={{display:'block', marginBottom:'8px'}}>TIPO: {selectedCardData.type === 'instant' ? `Aplicação Imediata` : `Duração: ${selectedCardData.duration === 'infinito' ? 'Permanente' : selectedCardData.duration + ' Mês'}`}</span>
+                         {/* Interface dinâmica para Empréstimo Forçado */}
+                         {selectedCardData?.type === 'special_carro' && (
+                           <div style={{ width: '100%', padding: '16px', background: 'rgba(255,189,0,0.1)', border: '1px solid var(--warning)', borderRadius: 'var(--radius-sm)' }}>
+                             <label style={{ fontWeight: '800', color: 'var(--warning)', display: 'block', marginBottom: '8px' }}>Quantas parcelas a família deseja para o conserto?</label>
+                             <input type="number" min="1" max="10" className="form-input" value={carInstallments} onChange={e => setCarInstallments(Number(e.target.value))} style={{ width: '120px' }} />
+                             <span style={{ marginLeft: '12px', fontWeight: 'bold' }}>x Parcelas (Máximo 10)</span>
+                           </div>
+                         )}
+
+                         {selectedCardData && selectedCardData.type !== 'special_carro' && (
+                           <div style={{ width: '100%', padding: '20px', background: selectedCardData.category === 'Oportunidade' || selectedCardData.category === 'Especial' ? 'rgba(0,0,0,0.3)' : 'var(--danger-bg)', borderRadius: 'var(--radius-sm)', border:`1px solid ${selectedCardData.amount > 0 ? 'var(--success)' : 'var(--border-light)'}` }}>
+                             <strong style={{display:'block', marginBottom:'8px', fontSize:'1.1rem', color: 'var(--nu-purple)'}}>ALVO: {selectedCardData.name}</strong>
                              <div style={{display:'flex', gap:'24px', fontSize:'1.2rem'}}>
                                <span style={{ color: selectedCardData.amount >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: '900' }}>
-                                 {selectedCardData.amount === 0 ? 'NENHUM CUSTO FIXO' : formatMoney(selectedCardData.amount)}
+                                 {selectedCardData.type === 'special_negocio_ruim' ? 'FALÊNCIA DO CAIXA E INVESTIMENTOS' : selectedCardData.amount === 0 ? 'NENHUM CUSTO DIRETO' : formatMoney(selectedCardData.amount)}
                                </span>
                                {selectedCardData.happiness !== 0 && (
                                  <span style={{ fontWeight: '900', color:'var(--warning)' }}>

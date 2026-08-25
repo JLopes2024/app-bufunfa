@@ -1,5 +1,6 @@
 // --- BANCO DE DADOS DE CARTAS DO JOGO ---
 export const GAME_CARDS = [
+  // Oportunidades
   { id: 'op_bonus', name: 'Bônus de Desempenho', category: 'Oportunidade', type: 'instant', amount: 400, happiness: 1 },
   { id: 'op_cashback', name: 'Cashback', category: 'Oportunidade', type: 'instant', amount: 150, happiness: 0 },
   { id: 'op_horaextra', name: 'Hora Extra', category: 'Oportunidade', type: 'instant', amount: 300, happiness: -1 },
@@ -10,6 +11,8 @@ export const GAME_CARDS = [
   { id: 'op_promocao', name: 'Promoção (Renda Contínua)', category: 'Oportunidade', type: 'continuous', effectType: 'receita_fixa', amount: 250, duration: 'infinito', happiness: 0 },
   { id: 'op_cursopago', name: 'Curso Pago por Outro', category: 'Oportunidade', type: 'instant', amount: 0, happiness: 2 },
   { id: 'op_wifi', name: 'Wi-Fi Grátis', category: 'Oportunidade', type: 'instant', amount: 120, happiness: 0 },
+  
+  // Imprevistos
   { id: 'imp_celular', name: 'Celular Quebrou', category: 'Imprevisto', type: 'instant', amount: -600, happiness: 0 },
   { id: 'imp_medico', name: 'Consulta Médica', category: 'Imprevisto', type: 'instant', amount: -250, happiness: 0 },
   { id: 'imp_pneu', name: 'Furou o Pneu', category: 'Imprevisto', type: 'instant', amount: -180, happiness: 0 },
@@ -19,9 +22,22 @@ export const GAME_CARDS = [
   { id: 'imp_demissao', name: 'Demissão', category: 'Imprevisto', type: 'continuous', effectType: 'sem_salario', amount: 0, duration: 1, happiness: 0 },
   { id: 'imp_saude', name: 'Despesa com Saúde', category: 'Imprevisto', type: 'instant', amount: -200, happiness: 0 },
   { id: 'imp_conserto', name: 'Conserto em Casa', category: 'Imprevisto', type: 'instant', amount: -300, happiness: 0 },
-  
-  // NOVA CARTA ADICIONADA:
-  { id: 'imp_chuva', name: 'Chuva Forte', category: 'Imprevisto', type: 'continuous', effectType: 'salario_metade', amount: 0, duration: 1, happiness: 0 }
+  { id: 'imp_chuva', name: 'Chuva Forte', category: 'Imprevisto', type: 'continuous', effectType: 'salario_metade', amount: 0, duration: 1, happiness: 0 },
+
+  // Acontecimentos Especiais
+  { id: 'esp_reforma', name: 'Reforma em Casa', category: 'Especial', type: 'instant', amount: -800, happiness: 1 },
+  { id: 'esp_sorte', name: 'Sorte Grande', category: 'Especial', type: 'instant', amount: 1500, happiness: 2 },
+  { id: 'esp_bolsa', name: 'Bolsa de Estudos', category: 'Especial', type: 'instant', amount: 500, happiness: 3 },
+  { id: 'esp_viagem', name: 'Viagem dos Sonhos', category: 'Especial', type: 'instant', amount: -1500, happiness: 4 },
+  { id: 'esp_heranca', name: 'Herança', category: 'Especial', type: 'instant', amount: 2000, happiness: 0 },
+  { id: 'esp_proposta', name: 'Proposta Irresistível', category: 'Especial', type: 'instant', amount: 1000, happiness: -2 },
+  { id: 'esp_risco_12', name: '[Alto Risco: Dado 1-2] Perdeu Tudo', category: 'Especial', type: 'instant', amount: -1500, happiness: 0 },
+  { id: 'esp_risco_34', name: '[Alto Risco: Dado 3-4] Empatou', category: 'Especial', type: 'instant', amount: 0, happiness: 0 },
+  { id: 'esp_risco_56', name: '[Alto Risco: Dado 5-6] Lucro Extremo', category: 'Especial', type: 'instant', amount: 2000, happiness: 0 },
+  { id: 'esp_negocio_12', name: '[Peq. Negócio: Dado 1-2] Falência!', category: 'Especial', type: 'special_negocio_ruim', amount: 0, happiness: 0 },
+  { id: 'esp_negocio_34', name: '[Peq. Negócio: Dado 3-4] Sobreviveu', category: 'Especial', type: 'instant', amount: 700, happiness: 0 },
+  { id: 'esp_negocio_56', name: '[Peq. Negócio: Dado 5-6] Sucesso', category: 'Especial', type: 'instant', amount: 1500, happiness: 0 },
+  { id: 'esp_carro', name: 'Carro Quebrou (Empréstimo)', category: 'Especial', type: 'special_carro', amount: 0, happiness: 0 }
 ];
 
 export const createFamily = (id, name, project, balance) => ({
@@ -67,7 +83,6 @@ export const processNextRound = (state) => {
     let activeLoans = [];
 
     (family.activeEffects || []).forEach(effect => {
-      // Processa apenas as deduções e receitas fixas na virada do mês
       if (effect.type === 'deducao_fixa') {
         currentBalance -= effect.amount;
         turnHistory.push({ id: crypto.randomUUID(), round: state.round, type: 'efeito_ativo', description: effect.name, amount: -effect.amount, balanceAfter: getWealth(currentBalance, newInvestments) });
@@ -76,7 +91,6 @@ export const processNextRound = (state) => {
         turnHistory.push({ id: crypto.randomUUID(), round: state.round, type: 'efeito_ativo', description: effect.name, amount: effect.amount, balanceAfter: getWealth(currentBalance, newInvestments) });
       }
       
-      // Controle de tempo de vida de todos os debuffs (incluindo salário e chuva forte)
       if (effect.duration === 'infinito') { remainingEffects.push(effect); } 
       else if (effect.duration > 1) { remainingEffects.push({ ...effect, duration: effect.duration - 1 }); }
     });
@@ -118,17 +132,13 @@ export const applyOperation = (family, payload) => {
     attributes: { ...(family.attributes || {}) }, activeEffects: [...(family.activeEffects || [])], loans: [...(family.loans || [])]
   };
   
-  const { type, amount, description, round, effectData, effectId, loanData, card, invKey, diceRoll } = payload;
+  const { type, amount, description, round, effectData, effectId, loanData, card, customData, invKey, diceRoll } = payload;
 
   if (type === 'toggle_ready') { updated.isReady = !updated.isReady; }
-  
-  // OPERAÇÕES GERAIS (Livres de bloqueios salariais)
   else if (type === 'deposito' || type === 'pagamento') {
     updated.balance = type === 'deposito' ? updated.balance + amount : updated.balance - amount;
     updated.history.push({ id: crypto.randomUUID(), round, type, amount: type === 'deposito' ? amount : -amount, description, balanceAfter: getWealth(updated.balance, updated.investments) });
   } 
-  
-  // NOVA ROTA EXCLUSIVA DE SALÁRIO (Interceptada pelas Cartas)
   else if (type === 'salario') {
     const isFired = updated.activeEffects.some(e => e.type === 'sem_salario');
     const hasRain = updated.activeEffects.some(e => e.type === 'salario_metade');
@@ -142,14 +152,48 @@ export const applyOperation = (family, payload) => {
       updated.history.push({ id: crypto.randomUUID(), round, type: 'salario', amount: finalAmount, description: `${descPrefix}${description || 'Pagamento de Salário'}`, balanceAfter: getWealth(updated.balance, updated.investments) });
     }
   }
-
   else if (type === 'jogar_carta') {
     if (card.happiness !== 0) updated.happiness += card.happiness;
-    if (card.type === 'instant' && card.amount !== 0) {
-      updated.balance += card.amount;
-      updated.history.push({ id: crypto.randomUUID(), round, type: 'carta_rpg', amount: card.amount, description: `Carta Ativada: ${card.name}`, balanceAfter: getWealth(updated.balance, updated.investments) });
-    } else if (card.type === 'continuous') {
+    
+    if (card.type === 'instant') {
+      if (card.amount !== 0) {
+        updated.balance += card.amount;
+        updated.history.push({ id: crypto.randomUUID(), round, type: 'carta_rpg', amount: card.amount, description: `Efeito Especial: ${card.name}`, balanceAfter: getWealth(updated.balance, updated.investments) });
+      }
+    } 
+    else if (card.type === 'continuous') {
       updated.activeEffects.push({ id: crypto.randomUUID(), name: card.name, type: card.effectType, amount: card.amount, duration: card.duration });
+    } 
+    // Nova Mecânica: Ruína de Pequeno Negócio
+    else if (card.type === 'special_negocio_ruim') {
+      let balanceLoss = 0;
+      if (updated.balance < 0) {
+        balanceLoss = updated.balance; // Vai gerar um "prejuízo" igual ao que já deve
+        updated.balance *= 2; // Dobra a negativação
+      } else {
+        balanceLoss = -updated.balance;
+        updated.balance = 0; // Zera o caixa positivo
+      }
+      // Varrer e cortar 50% de todos os investimentos
+      Object.keys(updated.investments).forEach(k => { updated.investments[k] /= 2; });
+      updated.history.push({ id: crypto.randomUUID(), round, type: 'carta_rpg', amount: balanceLoss, description: `🚨 FALÊNCIA TOTAL (Dado 1-2): Dívida dobrada / Caixa e Investimentos reduzidos em 50%!`, balanceAfter: getWealth(updated.balance, updated.investments) });
+    }
+    // Nova Mecânica: Empréstimo Compulsório
+    else if (card.type === 'special_carro') {
+      const installments = customData?.installments || 1;
+      const principal = 1200;
+      const totalWithInterest = principal * (1 + 0.15 * installments);
+      
+      updated.loans.push({
+        id: crypto.randomUUID(),
+        name: `Mecânico: Carro Quebrou (15% a.m.)`,
+        totalPrincipal: principal,
+        totalInstallments: installments,
+        currentInstallment: 1,
+        installmentValue: totalWithInterest / installments
+      });
+      // Registra que pegou empréstimo para pagar conserto. (Net balance não muda no momento, só cria a dívida).
+      updated.history.push({ id: crypto.randomUUID(), round, type: 'carta_rpg', amount: 0, description: `🔧 Carro Quebrou: Financiou R$ 1.200 em ${installments}x`, balanceAfter: getWealth(updated.balance, updated.investments) });
     }
   }
   else if (type === 'novo_efeito') { updated.activeEffects.push(effectData); }
