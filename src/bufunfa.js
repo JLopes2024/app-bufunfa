@@ -685,5 +685,3 @@ export const applyOperation = (family, payload) => {
 
 export const getRanking = (families) => [...families].sort((a, b) => getWealth(b.balance, b.investments) - getWealth(a.balance, a.investments));
 export const formatMoney = (value) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-game_logic.js
-Exibindo game_logic.js.
