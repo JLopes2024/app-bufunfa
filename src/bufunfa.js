@@ -1,6 +1,5 @@
 
-Conversa com o Gemini
-preciso inserir um efeito chuva forte que faz o jovem perder metade do salario // --- BANCO DE DADOS DE CARTAS DO JOGO ---
+// --- BANCO DE DADOS DE CARTAS DO JOGO ---
 
 export const GAME_CARDS = [
 
